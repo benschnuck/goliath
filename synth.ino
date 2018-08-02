@@ -4,6 +4,7 @@
 
 Metro beat = Metro(500);
 
+int tempo;
 int page = 1;
 bool seqSwitch = false;
 bool playControl = false;
@@ -32,8 +33,8 @@ char keys[ROWS][COLS] = {
 {'I','J','K','L'},
 {'M','N','O','P'}
 };
-byte rowPins[ROWS] = {5, 4, 3, 2}; //connect to the row pinouts of the kpd
-byte colPins[COLS] = {8, 7, 6}; //connect to the column pinouts of the kpd
+byte rowPins[ROWS] = {3, 2, 1, 0}; //connect to the row pinouts of the kpd
+byte colPins[COLS] = {7, 6, 5, 4}; //connect to the column pinouts of the kpd
 
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
@@ -47,7 +48,8 @@ void loop()
   {
     if(j == 0)
     {
-      //pots
+      tempo = analogRead(A0);
+      beat.setInterval(tempo);
     }
     if(j == 1)
     {
@@ -188,7 +190,7 @@ void loop()
               }
               if(hh1Steps[i])
               {
-                  play(hh1);
+                  playMem3.play(hh1);
               }
               if(hh2Steps[i])
               {
