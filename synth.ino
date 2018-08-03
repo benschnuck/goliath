@@ -82,67 +82,99 @@ void loop()
                 case PRESSED:
                   if(keypad.key[i].kchar = 'A')
                   {
-                      kick1Steps[page] = !kick1Steps[page];
+                    kick1Steps[page] = !kick1Steps[page];
+                    Serial.println("Kick 1: ");
+                    Serial.println(kick1Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'B')
                   {
-                      kick2Steps[page] = !kick2Steps[page];
+                    kick2Steps[page] = !kick2Steps[page];
+                    Serial.println("Kick 2: ");
+                    Serial.println(kick2Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'C')
                   {
-                      kick3Steps[page] = !kick3Steps[page];
+                    kick3Steps[page] = !kick3Steps[page];
+                    Serial.println("Kick 4: ");
+                    Serial.println(kick4Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'D')
                   {
-                      kick4Steps[page] = !kick4Steps[page];
+                    kick4Steps[page] = !kick4Steps[page];
+                    Serial.println("Kick 4: ");
+                    Serial.println(kick4Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'E')
                   {
-                      snare1Steps[page] = !snare1Steps[page];
+                    snare1Steps[page] = !snare1Steps[page];
+                    Serial.println("Snare 1: ");
+                    Serial.println(snare1Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'F')
                   {
-                      snare2Steps[page] = !snare2Steps[page];
+                    snare2Steps[page] = !snare2Steps[page];
+                    Serial.println("Snare 2: ");
+                    Serial.println(snare2Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'G')
                   {
-                      snare3Steps[page] = !snare3Steps[page];
+                    snare3Steps[page] = !snare3Steps[page];
+                    Serial.println("Snare 3: ");
+                    Serial.println(snare3Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'H')
                   {
-                      snare4Steps[page] = !snare4Steps[page];
+                    snare4Steps[page] = !snare4Steps[page];
+                    Serial.println("Snare 4: ");
+                    Serial.println(snare4Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'I')
                   {
-                      hh1Steps[page] = !hh1Steps[page];
+                    clap1Steps[page] = !clap1Steps[page];
+                    Serial.println("Clap 1: ");
+                    Serial.println(clap1Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'J')
                   {
-                      hh2Steps[page] = !hh2Steps[page];
+                    clap2Steps[page] = !clap2Steps[page];
+                    Serial.println("Clap 2: ");
+                    Serial.println(clap2Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'K')
                   {
-                      hh3Steps[page] = !hh3Steps[page];
+                    clap3Steps[page] = !clap3Steps[page];
+                    Serial.println("Clap 3: ");
+                    Serial.println(clap3Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'L')
                   {
-                      hh4Steps[page] = !hh4Steps[page];
+                    clap4Steps[page] = !clap4Steps[page];
+                    Serial.println("Clap 4: ");
+                    Serial.println(clap4Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'M')
                   {
-                      clap1Steps[page] = !clap1Steps[page];
+                    hh1Steps[page] = !hh1Steps[page];
+                    Serial.println("Hi Hat 1: ");
+                    Serial.println(hh1Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'N')
                   {
-                      clap2Steps[page] = !clap2Steps[page];
+                    hh2Steps[page] = !hh2Steps[page];
+                    Serial.println("Hi Hat 2: ");
+                    Serial.println(hh2Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'O')
                   {
-                      clap3Steps[page] = !clap3Steps[page];
+                    hh3Steps[page] = !hh3Steps[page];
+                    Serial.println("Hi Hat 3: ");
+                    Serial.println(hh3Steps[page]);
                   }
                   if(keypad.key[i].kchar = 'P')
                   {
-                      clap4Steps[page] = !clap4Steps[page];
+                    hh4Steps[page] = !hh4Steps[page];
+                    Serial.println("Hi Hat 4: ");
+                    Serial.println(hh4Steps[page]);
                   }
                   break;
               }
@@ -152,74 +184,74 @@ void loop()
       }
       if(playControl == true && seqSwitch == false)
       {
-        for(i=0; i<17; i++)
-        {
+        page = 0;
             if(beat.check())
             {
-              if(kick1Steps[i])
+              if(kick1Steps[page])
               {
                   playMem1.play(kick1);
               }
-              if(kick2Steps[i])
+              if(kick2Steps[page])
               {
                   playMem1.play(kick2);
               }
-              if(kick3Steps[i])
+              if(kick3Steps[page])
               {
                   playMem1.play(kick3);
               }
-              if(kick4Steps[i])
+              if(kick4Steps[page])
               {
                   playMem1.play(kick4);
               }
-              if(snare1Steps[i])
+              if(snare1Steps[page])
               {
                   playMem2.play(snare1);
               }
-              if(snare2Steps[i])
+              if(snare2Steps[page])
               {
                   playMem2.play(snare2);
               }
-              if(snare3Steps[i])
+              if(snare3Steps[page])
               {
                   playMem2.play(snare3);
               }
-              if(snare4Steps[i])
+              if(snare4Steps[page])
               {
                   playMem2.play(snare4);
               }
-              if(hh1Steps[i])
+              if(clap1Steps[page])
               {
-                  playMem3.play(hh1);
+                  playMem3.play(clap1);
               }
-              if(hh2Steps[i])
+              if(clap2Steps[page])
               {
-                  playMem3.play(hh2);
+                  playMem3.play(clap2);
               }
-              if(hh3Steps[i])
+              if(clap3Steps[page])
               {
-                  playMem3.play(hh3);
+                  playMem3.play(clap3);
               }
-              if(hh4Steps[i])
+              if(clap4Steps[page])
               {
-                  playMem3.play(hh4);
+                  playMem3.play(clap4);
               }
-              if(clap1Steps[i])
+              if(hh1Steps[page])
               {
-                  playMem4.play(clap1);
+                  playMem4.play(hh1);
               }
-              if(clap1Steps[i])
+              if(hh2Steps[page])
               {
-                  playMem4.play(clap2);
+                  playMem4.play(hh2);
               }
-              if(clap1Steps[i])
+              if(hh3Steps[page])
               {
-                  playMem4.play(clap3);
+                  playMem4.play(hh3);
               }
-              if(clap1Steps[i])
+              if(hh4Steps[page])
               {
-                  playMem4.play(clap4);
+                  playMem4.play(hh4);
               }
+              page++;
             }
           }
         }
