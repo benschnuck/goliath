@@ -1,10 +1,19 @@
 #include <Bounce.h>
 #include <Keypad.h>
 #include <Metro.h>
+#include "SPI.h"
+#include "ILI9341_t3.h"
+#define TFT_DC      20
+#define TFT_CS      21
+#define TFT_RST    255
+#define TFT_MOSI     7
+#define TFT_SCLK    14
+#define TFT_MISO    12
 
 Metro beat = Metro(500);
 
 int tempo;
+int msDelay;
 int page = 1;
 bool seqSwitch = false;
 bool playControl = false;
@@ -25,6 +34,7 @@ bool clap2Steps[16]{false};
 bool clap3Steps[16]{false};
 bool clap4Steps[16]{false};
 
+//keypad
 const byte ROWS = 4; //four rows
 const byte COLS = 4; //three columns
 char keys[ROWS][COLS] = {
@@ -38,9 +48,17 @@ byte colPins[COLS] = {7, 6, 5, 4}; //connect to the column pinouts of the kpd
 
 Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
 
+//screen
+
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
+
 void setup()
 {
-  
+  tft.fillScreen(ILI9341_BLACK);
+  tft.setCursor(0, 0);
+  tft.setTextColor(ILI9341_WHITE);
+  tft.setTextSize(3);
+  tft.println("THE BEAN MACHINE");
 }
 void loop()
 {
@@ -49,7 +67,8 @@ void loop()
     if(j == 0)
     {
       tempo = analogRead(A0);
-      beat.setInterval(tempo);
+      beat.setInterval(msDelay);
+      tempo = 60,000 / msDelay;
     }
     if(j == 1)
     {
