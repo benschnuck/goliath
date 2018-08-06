@@ -1,0 +1,64 @@
+#include <Metro.h>
+#include <Bounce.h>
+
+Metro chaosInterval = Metro(100);
+int chaosIntervalReading;
+float step[24];
+
+float chaosRandom;
+int KEYPOS = 0;
+int KEY = 0;
+
+float chaosCalc (int key)
+{
+  float chaosKeyFreq;
+  chaosKeyFreq = (float)(pow(2, ((key + 37) - 49) / 12));
+  return chaosKeyFreq;
+}
+
+Bounce newRandom = Bounce(x, 15);
+
+void setup()
+{
+  for(int i=0; i<24; i++)
+  {
+    step[i] = chaosCalc(i);
+  }
+  chaosRandom = (float)random(200, 600);
+}
+
+void loop()
+{
+  chaosIntervalReading = analogRead(A0) * 5;
+  
+  chaos();
+}
+
+void chaos()
+{
+  chaosInterval.interval(chaosIntervalReading);
+  
+  if(newRandom.fallingEdge())
+  {
+    float chaosRandom = (float)random(200, 600);
+  }
+  
+  int chaosKey[4][8] = {
+    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom},
+    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom},
+    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom},
+    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom}
+    };
+  
+  
+  if(chaosInterval.check())
+  {
+    waveform.frequency(chaosKey[KEY][KEYPOS]);
+    KEYPOS++;
+    if(KEYPOS > 8)
+    {
+      KEYPOS = 0;
+    }
+    chaosInterval.reset();
+  }
+}
