@@ -4,11 +4,13 @@
 Metro chaosInterval = Metro(100);
 int chaosIntervalReading;
 float step[24];
+int randStep;
 
 float chaosRandom;
 int KEYPOS = 0;
 int KEY = 0;
 
+//Calc different key steps
 float chaosCalc (int key)
 {
   float chaosKeyFreq;
@@ -25,6 +27,7 @@ void setup()
     step[i] = chaosCalc(i);
   }
   chaosRandom = (float)random(200, 600);
+  randStep = (int)random(0, 24);
 }
 
 void loop()
@@ -32,6 +35,7 @@ void loop()
   chaosIntervalReading = analogRead(A0) * 5;
   
   chaos();
+  KEY = (int)(analogRead(A1) / 250);
 }
 
 void chaos()
@@ -44,18 +48,24 @@ void chaos()
   }
   
   int chaosKey[4][8] = {
-    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom},
-    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom},
-    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom},
-    {step(6) * chaosRandom, step(5) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom, step(5) * chaosRandom}
+    //A Minor Pattern
+    {step(0) * chaosRandom, step(0) * chaosRandom, step(7) * chaosRandom, step(7) * chaosRandom, step(3) * chaosRandom, step(3) * chaosRandom, step(10) * chaosRandom, step(10) * chaosRandom},
+    //F Minor Pattern
+    {step(8) * chaosRandom, step(8) * chaosRandom, step(15) * chaosRandom, step(15) * chaosRandom, step(11) * chaosRandom, step(11) * chaosRandom, step(18) * chaosRandom, step(18) * chaosRandom},
+    //D Dominant Pattern
+    {step(5) * chaosRandom, step(5) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom, step(9) * chaosRandom, step(9) * chaosRandom, step(15) * chaosRandom, step(15) * chaosRandom},
+    //Random Pattern
+    {step(12) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom, step(12) * chaosRandom}
     };
-  
   
   if(chaosInterval.check())
   {
+    randStep = (int)random(0, 24);
+    chaosKey[3][KEYPOS] = step(randStep) * chaosRandom;
+    
     waveform.frequency(chaosKey[KEY][KEYPOS]);
     KEYPOS++;
-    if(KEYPOS > 8)
+    if(KEYPOS >= 8)
     {
       KEYPOS = 0;
     }
