@@ -24,9 +24,9 @@ void loop() {
   // put your main code here, to run repeatedly:
   for(byte pin=0; pin<=7; pin++) {
     selectMuxPin(pin);
-  int inputVal;
-  inputVal = analogRead(A13);
-  Serial.print(String(inputVal) + "\t");
+    int inputVal;
+    inputVal = analogRead(A13);
+    Serial.print(String(inputVal) + "\t");
   }
   Serial.println();
   delay(100);
