@@ -1,6 +1,30 @@
 #include <Bounce.h>
 #include <Keypad.h>
 #include <Metro.h>
+#include <ILI9341_t3.h>
+#include "AudioSampleKick1.h"
+#include "AudioSampleKick2.h"
+#include "AudioSampleKick3.h"
+#include "AudioSampleKick4.h"
+#include "AudioSampleSnare1.h"
+#include "AudioSampleSnare2.h"
+#include "AudioSampleSnare3.h"
+#include "AudioSampleSnare4.h"
+#include "AudioSampleHh1.h"
+#include "AudioSampleHh2.h"
+#include "AudioSampleHh3.h"
+#include "AudioSampleHh4.h"
+#include "AudioSampleClap1.h"
+#include "AudioSampleClap2.h"
+#include "AudioSampleClap3.h"
+#include "AudioSampleClap4.h"
+
+#define TFT_DC      20
+#define TFT_CS      21
+#define TFT_RST    255
+#define TFT_MOSI     7
+#define TFT_SCLK    14
+#define TFT_MISO    12
 
 #include <Audio.h>
 #include <Wire.h>
@@ -272,7 +296,7 @@ float freqChart[16]
 {
   220, 233.0819, 246.9417, 261.6256, 277.1826, 293.6648, 311.127, 329.6276, 349.6276, 369.9944, 391.9954, 415.3047, 440, 466.1638, 493.883, 523.2511
 };
-int octave = 2;
+int octave = 1;
 int waveformA_type = WAVEFORM_SINE;
 int waveformB_type = WAVEFORM_SINE;
 int lfo_type = WAVEFORM_SINE;
@@ -284,6 +308,13 @@ bool drum = false;
 
 //Buttons/Switches
 Bounce drumSwitch = Bounce(0, 15);
+Bounce seqSwitch = Bounce(1, 15);
+Bounce octaveDown = Bounce(3, 15);
+Bounce octaveUp = Bounce(4, 15);
+Bounce resetSeq = Bounce(17, 15);
+Bounce pageDown = Bounce(39, 15);
+Bounce pageUp = Bounce(38, 15);
+Bounce playPause = Bounce(16, 15);
 
 //Button Pad
 const byte ROWS = 4;
@@ -297,12 +328,39 @@ char keys[ROWS][COLS] = {
 byte colPins[COLS] = {27, 26, 25, 24};
 byte rowPins[ROWS] = {31, 32, 29, 28};
 Keypad keypad = Keypad (makeKeymap(keys), rowPins, colPins, ROWS, COLS);
-
+Keypad kpd = Keypad (makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 String msg;
 
 //Encoders
 
 //Sequencer
+int page;
+int seqStep = 0;
+int prevSeqStep = 15;
+int tempo;
+int msDelay;
+Metro beat = Metro(1000);
+bool playControl = false;
+bool seq = false;
+bool kick1Steps[16] {false};
+bool kick2Steps[16] {false};
+bool kick3Steps[16] {false};
+bool kick4Steps[16] {false};
+bool snare1Steps[16] {false};
+bool snare2Steps[16] {false};
+bool snare3Steps[16] {false};
+bool snare4Steps[16] {false};
+bool hh1Steps[16] {false};
+bool hh2Steps[16] {false};
+bool hh3Steps[16] {false};
+bool hh4Steps[16] {false};
+bool clap1Steps[16] {false};
+bool clap2Steps[16] {false};
+bool clap3Steps[16] {false};
+bool clap4Steps[16] {false};
+
+//DISPLAY
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC, TFT_RST, TFT_MOSI, TFT_SCLK, TFT_MISO);
 
 
 void setup() {
@@ -311,12 +369,50 @@ void setup() {
   delay(100);
   Serial.println("Startup Success");
 
+  //Touchscreen
+  tft.begin();
+  tft.setRotation(3);
+  tft.fillScreen(ILI9341_WHITE);
+  tft.setCursor(0,0);
+  tft.setTextColor(ILI9341_BLACK);
+  tft.setTextSize(3.5);
+  tft.setCursor(15,150);
+  tft.print("THE BEAN MACHINE");
+  delay(1500);
+  tft.fillScreen(ILI9341_WHITE);
+  tft.setCursor(120,150);
+  tft.print("v.0.5");
+  delay(1500);
+  tft.fillScreen(ILI9341_WHITE);
+  tft.setCursor(45,150);
+  tft.print("PROGRAMMED BY");
+  delay(1500);
+  tft.fillScreen(ILI9341_WHITE);
+  tft.setCursor(60,150);
+  tft.print("BEN SCHNUCK");
+  delay(1500);
+  tft.fillScreen(ILI9341_WHITE);
+
   //pots
 
   //buttons
   pinMode(0, INPUT_PULLUP);
+  pinMode(1, INPUT_PULLUP);
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+  pinMode(4, INPUT_PULLUP);
+  pinMode(17, INPUT_PULLUP);
+  pinMode(38, INPUT_PULLUP);
+  pinMode(39, INPUT_PULLUP);
+  pinMode(16, INPUT_PULLUP);
 
+  seqSwitch.update();
+  playPause.update();
   drumSwitch.update();
+  octaveDown.update();
+  octaveUp.update();
+  pageDown.update();
+  pageUp.update();
 
   delay(100);
   Serial.println("Button Setup Complete");
@@ -331,7 +427,7 @@ void setup() {
 
   //audio
   sgtl5000_1.enable();
-  sgtl5000_1.volume(0.8);
+  sgtl5000_1.volume(1);
 
   waveformA1.begin(.25, 440, waveformA_type);
   waveformB1.begin(.25, 440, waveformB_type);
@@ -367,26 +463,26 @@ void setup() {
   waveformB16.begin(.25, 440, waveformB_type);
 
   for (int i = 0; i < 5; i++) {
-    voiceMix1.gain(i, .25);
-    voiceMix2.gain(i, .25);
-    voiceMix3.gain(i, .25);
-    voiceMix4.gain(i, .25);
-    voiceMix5.gain(i, .25);
-    voiceMix6.gain(i, .25);
-    voiceMix7.gain(i, .25);
-    voiceMix8.gain(i, .25);
-    voiceMix9.gain(i, .25);
-    voiceMix10.gain(i, .25);
-    voiceMix11.gain(i, .25);
-    voiceMix12.gain(i, .25);
-    voiceMix13.gain(i, .25);
-    voiceMix14.gain(i, .25);
-    voiceMix15.gain(i, .25);
-    voiceMix16.gain(i, .25);
-    preMix1.gain(i, .25);
-    preMix2.gain(i, .25);
-    preMix3.gain(i, .25);
-    preMix4.gain(i, .25);
+    voiceMix1.gain(i, .1);
+    voiceMix2.gain(i, .1);
+    voiceMix3.gain(i, .1);
+    voiceMix4.gain(i, .1);
+    voiceMix5.gain(i, .1);
+    voiceMix6.gain(i, .1);
+    voiceMix7.gain(i, .1);
+    voiceMix8.gain(i, .1);
+    voiceMix9.gain(i, .1);
+    voiceMix10.gain(i, .1);
+    voiceMix11.gain(i, .1);
+    voiceMix12.gain(i, .1);
+    voiceMix13.gain(i, .1);
+    voiceMix14.gain(i, .1);
+    voiceMix15.gain(i, .1);
+    voiceMix16.gain(i, .1);
+    preMix1.gain(i, .1);
+    preMix2.gain(i, .1);
+    preMix3.gain(i, .1);
+    preMix4.gain(i, .1);
   }
 
   lfo.begin(2, 3, lfo_type);
@@ -403,19 +499,58 @@ void setup() {
 }
 
 void loop() {
-  for (int j = 0; j < 4; j++)
+  for (int j = 0; j < 5; j++)
   {
     //POTS
     if (j == 0)
     {
       int lfoFreq = analogRead(A14);
       lfo.frequency(lfoFreq / 100);
-      
+
+      msDelay = analogRead(A15);
+      beat.interval(msDelay);
+      tempo = 60, 000 / msDelay;
+
     }
     //BUTTONS
     if (j == 1)
     {
       drumSwitch.update();
+      seqSwitch.update();
+      playPause.update();
+      octaveDown.update();
+      octaveUp.update();
+      pageDown.update();
+      pageUp.update();
+      resetSeq.update();
+
+      if (octave <= 0)
+      {
+        octave = 1;
+      }
+      if (octave >= 9)
+      {
+        octave = 8;
+      }
+
+      if (playPause.fallingEdge())
+      {
+        playControl = !playControl;
+        if (playControl == false) {
+          Serial.println("PAUSE");
+        }
+        if (playControl == true) {
+          page = 0;
+          seqStep = 0;
+          Serial.println("PLAY");
+        }
+      }
+
+      if (resetSeq.fallingEdge())
+      {
+        seqReset();
+        Serial.println("RESET");
+      }
 
       if (drumSwitch.fallingEdge()) {
         Serial.println("Drum Mode on");
@@ -425,227 +560,493 @@ void loop() {
         Serial.println("Drum Mode off");
         drum = false;
       }
+      if (seqSwitch.fallingEdge()) {
+        Serial.println("Sequence Mode on");
+        seq = true;
+      }
+      if (seqSwitch.risingEdge()) {
+        Serial.println("Sequence Mode off");
+        seq = false;
+      }
+      if (octaveUp.fallingEdge()) {
+        octave++;
+        Serial.print("Octave: ");
+        Serial.println(octave);
+      }
+      if (octaveDown.fallingEdge()) {
+        octave--;
+        Serial.print("Octave: ");
+        Serial.println(octave);
+      }
+      if (pageUp.fallingEdge()) {
+        page++;
+        if (page > 15)
+        {
+          page = 15;
+        }
+        Serial.print("Step: ");
+        Serial.println(page + 1);
+      }
+      if (pageDown.fallingEdge()) {
+        page--;
+        if (page < 0)
+        {
+          page = 0;
+        }
+        Serial.print("Step: ");
+        Serial.println(page + 1);
+      }
+
     }
     if (j == 3)
     {
       if (keypad.getKeys())
       {
+
         for (int i = 0; i < LIST_MAX; i++) // Scan the whole key list.
         {
           if (keypad.key[i].stateChanged)
           {
-            switch (keypad.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-              case PRESSED:
-                msg = " PRESSED.";
-                switch (keypad.key[i].kchar) {
-                  case 'A':
-                    waveformA1.frequency(freqChart[0] * octave);
-                    waveformB1.frequency(freqChart[0] * octave);
-                    env1.noteOn();
-                    break;
-                  case 'B':
-                    waveformA2.frequency(freqChart[1] * octave);
-                    waveformB2.frequency(freqChart[1] * octave);
-                    env2.noteOn();
-                    break;
+            if (drum == false)
+            {
+              switch (keypad.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
+                case PRESSED:
+                  msg = " PRESSED.";
+                  switch (keypad.key[i].kchar) {
+                    case 'A':
+                      waveformA1.frequency(freqChart[0] * octave);
+                      waveformB1.frequency(freqChart[0] * octave);
+                      env1.noteOn();
+                      break;
+                    case 'B':
+                      waveformA2.frequency(freqChart[1] * octave);
+                      waveformB2.frequency(freqChart[1] * octave);
+                      env2.noteOn();
+                      break;
 
-                  case 'C':
-                    waveformA3.frequency(freqChart[2] * octave);
-                    waveformB3.frequency(freqChart[2] * octave);
-                    env3.noteOn();
-                    break;
-                  case 'D':
-                    waveformA4.frequency(freqChart[3] * octave);
-                    waveformB4.frequency(freqChart[3] * octave);
-                    env4.noteOn();
-                    break;
-                  case 'E':
-                    waveformA5.frequency(freqChart[4] * octave);
-                    waveformB5.frequency(freqChart[4] * octave);
-                    env5.noteOn();
-                    break;
-                  case 'F':
-                    waveformA6.frequency(freqChart[5] * octave);
-                    waveformB6.frequency(freqChart[5] * octave);
-                    env6.noteOn();
-                    break;
-                  case 'G':
-                    waveformA7.frequency(freqChart[6] * octave);
-                    waveformB7.frequency(freqChart[6] * octave);
-                    env7.noteOn();
-                    break;
-                  case 'H':
-                    waveformA8.frequency(freqChart[7] * octave);
-                    waveformB8.frequency(freqChart[7] * octave);
-                    env8.noteOn();
-                    break;
-                  case 'I':
-                    waveformA9.frequency(freqChart[8] * octave);
-                    waveformB9.frequency(freqChart[8] * octave);
-                    env9.noteOn();
-                    break;
-                  case 'J':
-                    waveformA10.frequency(freqChart[9] * octave);
-                    waveformB10.frequency(freqChart[9] * octave);
-                    env10.noteOn();
-                    break;
-                  case 'K':
-                    waveformA11.frequency(freqChart[10] * octave);
-                    waveformB11.frequency(freqChart[10] * octave);
-                    env11.noteOn();
-                    break;
-                  case 'L':
-                    waveformA12.frequency(freqChart[11] * octave);
-                    waveformB12.frequency(freqChart[11] * octave);
-                    env12.noteOn();
-                    break;
-                  case 'M':
-                    waveformA13.frequency(freqChart[12] * octave);
-                    waveformB13.frequency(freqChart[12] * octave);
-                    env13.noteOn();
-                    break;
-                  case 'N':
-                    waveformA14.frequency(freqChart[13] * octave);
-                    waveformB14.frequency(freqChart[13] * octave);
-                    env14.noteOn();
-                    break;
-                  case 'O':
-                    waveformA15.frequency(freqChart[14] * octave);
-                    waveformB15.frequency(freqChart[14] * octave);
-                    env15.noteOn();
-                    break;
-                  case 'P':
-                    waveformA16.frequency(freqChart[15] * octave);
-                    waveformB16.frequency(freqChart[15] * octave);
-                    env16.noteOn();
-                    break;
-                }
-                break;
-              case HOLD:
-                msg = " HOLD.";
-                break;
-              case RELEASED:
-                msg = " RELEASED.";
-                switch (keypad.key[i].kchar) {
-                  case 'A':
-                    env1.noteOff();
-                    break;
-                  case 'B':
-                    env2.noteOff();
-                    break;
-                  case 'C':
-                    env3.noteOff();
-                    break;
-                  case 'D':
-                    env4.noteOff();
-                    break;
-                  case 'E':
-                    env5.noteOff();
-                    break;
-                  case 'F':
-                    env6.noteOff();
-                    break;
-                  case 'G':
-                    env7.noteOff();
-                    break;
-                  case 'H':
-                    env8.noteOff();
-                    break;
-                  case 'I':
-                    env9.noteOff();
-                    break;
-                  case 'J':
-                    env10.noteOff();
-                    break;
-                  case 'K':
-                    env11.noteOff();
-                    break;
-                  case 'L':
-                    env12.noteOff();
-                    break;
-                  case 'M':
-                    env13.noteOff();
-                    break;
-                  case 'N':
-                    env14.noteOff();
-                    break;
-                  case 'O':
-                    env15.noteOff();
-                    break;
-                  case 'P':
-                    env16.noteOff();
-                    break;
-                }
-                break;
-              case IDLE:
-                msg = " IDLE.";
+                    case 'C':
+                      waveformA3.frequency(freqChart[2] * octave);
+                      waveformB3.frequency(freqChart[2] * octave);
+                      env3.noteOn();
+                      break;
+                    case 'D':
+                      waveformA4.frequency(freqChart[3] * octave);
+                      waveformB4.frequency(freqChart[3] * octave);
+                      env4.noteOn();
+                      break;
+                    case 'E':
+                      waveformA5.frequency(freqChart[4] * octave);
+                      waveformB5.frequency(freqChart[4] * octave);
+                      env5.noteOn();
+                      break;
+                    case 'F':
+                      waveformA6.frequency(freqChart[5] * octave);
+                      waveformB6.frequency(freqChart[5] * octave);
+                      env6.noteOn();
+                      break;
+                    case 'G':
+                      waveformA7.frequency(freqChart[6] * octave);
+                      waveformB7.frequency(freqChart[6] * octave);
+                      env7.noteOn();
+                      break;
+                    case 'H':
+                      waveformA8.frequency(freqChart[7] * octave);
+                      waveformB8.frequency(freqChart[7] * octave);
+                      env8.noteOn();
+                      break;
+                    case 'I':
+                      waveformA9.frequency(freqChart[8] * octave);
+                      waveformB9.frequency(freqChart[8] * octave);
+                      env9.noteOn();
+                      break;
+                    case 'J':
+                      waveformA10.frequency(freqChart[9] * octave);
+                      waveformB10.frequency(freqChart[9] * octave);
+                      env10.noteOn();
+                      break;
+                    case 'K':
+                      waveformA11.frequency(freqChart[10] * octave);
+                      waveformB11.frequency(freqChart[10] * octave);
+                      env11.noteOn();
+                      break;
+                    case 'L':
+                      waveformA12.frequency(freqChart[11] * octave);
+                      waveformB12.frequency(freqChart[11] * octave);
+                      env12.noteOn();
+                      break;
+                    case 'M':
+                      waveformA13.frequency(freqChart[12] * octave);
+                      waveformB13.frequency(freqChart[12] * octave);
+                      env13.noteOn();
+                      break;
+                    case 'N':
+                      waveformA14.frequency(freqChart[13] * octave);
+                      waveformB14.frequency(freqChart[13] * octave);
+                      env14.noteOn();
+                      break;
+                    case 'O':
+                      waveformA15.frequency(freqChart[14] * octave);
+                      waveformB15.frequency(freqChart[14] * octave);
+                      env15.noteOn();
+                      break;
+                    case 'P':
+                      waveformA16.frequency(freqChart[15] * octave);
+                      waveformB16.frequency(freqChart[15] * octave);
+                      env16.noteOn();
+                      break;
+                  }
+                  break;
+                case HOLD:
+                  msg = " HOLD.";
+                  break;
+                case RELEASED:
+                  msg = " RELEASED.";
+                  switch (keypad.key[i].kchar) {
+                    case 'A':
+                      env1.noteOff();
+                      break;
+                    case 'B':
+                      env2.noteOff();
+                      break;
+                    case 'C':
+                      env3.noteOff();
+                      break;
+                    case 'D':
+                      env4.noteOff();
+                      break;
+                    case 'E':
+                      env5.noteOff();
+                      break;
+                    case 'F':
+                      env6.noteOff();
+                      break;
+                    case 'G':
+                      env7.noteOff();
+                      break;
+                    case 'H':
+                      env8.noteOff();
+                      break;
+                    case 'I':
+                      env9.noteOff();
+                      break;
+                    case 'J':
+                      env10.noteOff();
+                      break;
+                    case 'K':
+                      env11.noteOff();
+                      break;
+                    case 'L':
+                      env12.noteOff();
+                      break;
+                    case 'M':
+                      env13.noteOff();
+                      break;
+                    case 'N':
+                      env14.noteOff();
+                      break;
+                    case 'O':
+                      env15.noteOff();
+                      break;
+                    case 'P':
+                      env16.noteOff();
+                      break;
+                  }
+                  break;
+                case IDLE:
+                  msg = " IDLE.";
+              }
+              Serial.print("Key ");
+              Serial.print(keypad.key[i].kchar);
+              Serial.println(msg);
             }
-            Serial.print("Key ");
-            Serial.print(keypad.key[i].kchar);
-            Serial.println(msg);
+            else if (drum == true)
+            {
+              switch (keypad.key[i].kstate) {
+                case PRESSED:
+                  msg = " PRESSED.";
+                  if (keypad.key[i].kchar == 'A')
+                  {
+                    playMem1.play(AudioSampleKick1);
+                  }
+                  if (keypad.key[i].kchar == 'B')
+                  {
+                    playMem1.play(AudioSampleKick2);
+                  }
+                  if (keypad.key[i].kchar == 'C')
+                  {
+                    playMem1.play(AudioSampleKick3);
+                  }
+                  if (keypad.key[i].kchar == 'D')
+                  {
+                    playMem1.play(AudioSampleKick4);
+                  }
+                  if (keypad.key[i].kchar == 'E')
+                  {
+                    playMem2.play(AudioSampleSnare1);
+                  }
+                  if (keypad.key[i].kchar == 'F')
+                  {
+                    playMem2.play(AudioSampleSnare2);
+                  }
+                  if (keypad.key[i].kchar == 'G')
+                  {
+                    playMem2.play(AudioSampleSnare3);
+                  }
+                  if (keypad.key[i].kchar == 'H')
+                  {
+                    playMem2.play(AudioSampleSnare4);
+                  }
+                  if (keypad.key[i].kchar == 'I')
+                  {
+                    playMem3.play(AudioSampleClap1);
+                  }
+                  if (keypad.key[i].kchar == 'J')
+                  {
+                    playMem3.play(AudioSampleClap2);
+                  }
+                  if (keypad.key[i].kchar == 'K')
+                  {
+                    playMem3.play(AudioSampleClap3);
+                  }
+                  if (keypad.key[i].kchar == 'L')
+                  {
+                    playMem3.play(AudioSampleClap4);
+                  }
+                  if (keypad.key[i].kchar == 'M')
+                  {
+                    playMem4.play(AudioSampleHh1);
+                  }
+                  if (keypad.key[i].kchar == 'N')
+                  {
+                    playMem4.play(AudioSampleHh2);
+                  }
+                  if (keypad.key[i].kchar == 'O')
+                  {
+                    playMem4.play(AudioSampleHh3);
+                  }
+                  if (keypad.key[i].kchar == 'P')
+                  {
+                    playMem4.play(AudioSampleHh4);
+                  }
+                  break;
+                case HOLD:
+                  msg = " HOLD.";
+                  break;
+                case RELEASED:
+                  msg = " RELEASED.";
+                  break;
+                case IDLE:
+                  msg = " IDLE.";
+              }
+            }
+          }
+        }
+      }
+    }
+    if (j == 4)
+    {
+      for (int i = 0; i < 2; i++)
+      {
+        if (i == 0)
+        {
+          if (seq && !playControl)
+          {
+            if (kpd.getKeys())
+            {
+              for (int k = 0; k < LIST_MAX; k++)
+              {
+                if (kpd.key[k].stateChanged)
+                {
+                  switch (kpd.key[k].kstate)
+                  {
+                    case PRESSED:
+                      if (kpd.key[k].kchar == 'A')
+                      {
+                        kick1Steps[page] = !kick1Steps[page];
+                        Serial.print("Kick 1: ");
+                        Serial.println((bool)kick1Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'B')
+                      {
+                        kick2Steps[page] = !kick2Steps[page];
+                        Serial.print("Kick 2: ");
+                        Serial.println(kick2Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'C')
+                      {
+                        kick3Steps[page] = !kick3Steps[page];
+                        Serial.print("Kick 3: ");
+                        Serial.println(kick3Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'D')
+                      {
+                        kick4Steps[page] = !kick4Steps[page];
+                        Serial.print("Kick 4: ");
+                        Serial.println(kick4Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'E')
+                      {
+                        snare1Steps[page] = !snare1Steps[page];
+                        Serial.print("Snare 1: ");
+                        Serial.println(snare1Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'F')
+                      {
+                        snare2Steps[page] = !snare2Steps[page];
+                        Serial.print("Snare 2: ");
+                        Serial.println(snare2Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'G')
+                      {
+                        snare3Steps[page] = !snare3Steps[page];
+                        Serial.print("Snare 3: ");
+                        Serial.println(snare3Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'H')
+                      {
+                        snare4Steps[page] = !snare4Steps[page];
+                        Serial.print("Snare 4: ");
+                        Serial.println(snare4Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'I')
+                      {
+                        clap1Steps[page] = !clap1Steps[page];
+                        Serial.print("Clap 1: ");
+                        Serial.println(clap1Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'J')
+                      {
+                        clap2Steps[page] = !clap2Steps[page];
+                        Serial.print("Clap 2: ");
+                        Serial.println(clap2Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'K')
+                      {
+                        clap3Steps[page] = !clap3Steps[page];
+                        Serial.print("Clap 3: ");
+                        Serial.println(clap3Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'L')
+                      {
+                        clap4Steps[page] = !clap4Steps[page];
+                        Serial.print("Clap 4: ");
+                        Serial.println(clap4Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'M')
+                      {
+                        hh1Steps[page] = !hh1Steps[page];
+                        Serial.print("Hi Hat 1: ");
+                        Serial.println(hh1Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'N')
+                      {
+                        hh2Steps[page] = !hh2Steps[page];
+                        Serial.print("Hi Hat 2: ");
+                        Serial.println(hh2Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'O')
+                      {
+                        hh3Steps[page] = !hh3Steps[page];
+                        Serial.print("Hi Hat 3: ");
+                        Serial.println(hh3Steps[page]);
+                      }
+                      if (kpd.key[k].kchar == 'P')
+                      {
+                        hh4Steps[page] = !hh4Steps[page];
+                        Serial.print("Hi Hat 4: ");
+                        Serial.println(hh4Steps[page]);
+                      }
+                      break;
+                  }
+                }
+              }
+            }
+          }
+        }
+        if (i == 1)
+        {
+          if (playControl == true && seq == false)
+          {
 
-            //            else if (drum == true)
-            //            {
-            //              switch (keypad.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-            //                case PRESSED:
-            //                  msg = " PRESSED.";
-            //                  if (keypad.key[i].kchar == '1')
-            //                  {
-            //                    playMem1.play(AudioSampleKick1);
-            //                  }
-            //                  if (keypad.key[i].kchar == '2')
-            //                  {
-            //                    playMem1.play(AudioSampleKick2);
-            //                  }
-            //                  if (keypad.key[i].kchar == '3')
-            //                  {
-            //                    playMem1.play(AudioSampleKick3);
-            //                  }
-            //                  if (keypad.key[i].kchar == '4')
-            //                  {
-            //                    playMem2.play(AudioSampleSnare1);
-            //                  }
-            //                  if (keypad.key[i].kchar == '5')
-            //                  {
-            //                    playMem2.play(AudioSampleSnare2);
-            //                  }
-            //                  if (keypad.key[i].kchar == '6')
-            //                  {
-            //                    playMem2.play(AudioSampleSnare3);
-            //                  }
-            //                  if (keypad.key[i].kchar == '7')
-            //                  {
-            //                    playMem3.play(AudioSampleClap1);
-            //                  }
-            //                  if (keypad.key[i].kchar == '8')
-            //                  {
-            //                    playMem3.play(AudioSampleClap2);
-            //                  }
-            //                  if (keypad.key[i].kchar == '9')
-            //                  {
-            //                    playMem3.play(AudioSampleClap3);
-            //                  }
-            //                  if (keypad.key[i].kchar == '*')
-            //                  {
-            //                    playMem4.play(AudioSampleHh1);
-            //                  }
-            //                  if (keypad.key[i].kchar == '0')
-            //                  {
-            //                    playMem4.play(AudioSampleHh2);
-            //                  }
-            //                  if (keypad.key[i].kchar == '#')
-            //                  {
-            //                    playMem4.play(AudioSampleHh3);
-            //                  }
-            //                  break;
-            //                case HOLD:
-            //                  msg = " HOLD.";
-            //                  break;
-            //                case RELEASED:
-            //                  msg = " RELEASED.";
-            //                  break;
-            //                case IDLE:
-            //                  msg = " IDLE.";
+            if (beat.check())
+            {
+              beat.reset();
+              seqStep++;
+              Serial.print("Beat: ");
+              Serial.println(seqStep);
+            }
+            if (seqStep >= 16)
+            {
+              seqStep = 0;
+            }
+            if (abs(seqStep - prevSeqStep) > 0)
+            {
+              if (kick1Steps[seqStep])
+              {
+                playMem1.play(AudioSampleKick1);
+              }
+              if (kick2Steps[seqStep])
+              {
+                playMem1.play(AudioSampleKick2);
+              }
+              if (kick3Steps[seqStep])
+              {
+                playMem1.play(AudioSampleKick3);
+              }
+              if (kick4Steps[seqStep])
+              {
+                playMem1.play(AudioSampleKick4);
+              }
+              if (snare1Steps[seqStep])
+              {
+                playMem2.play(AudioSampleSnare1);
+              }
+              if (snare2Steps[seqStep])
+              {
+                playMem2.play(AudioSampleSnare2);
+              }
+              if (snare3Steps[seqStep])
+              {
+                playMem2.play(AudioSampleSnare3);
+              }
+              if (snare4Steps[seqStep])
+              {
+                playMem2.play(AudioSampleSnare4);
+              }
+              if (clap1Steps[seqStep])
+              {
+                playMem3.play(AudioSampleClap1);
+              }
+              if (clap2Steps[seqStep])
+              {
+                playMem3.play(AudioSampleClap2);
+              }
+              if (clap3Steps[seqStep])
+              {
+                playMem3.play(AudioSampleClap3);
+              }
+              if (clap4Steps[seqStep])
+              {
+                playMem3.play(AudioSampleClap4);
+              }
+              if (hh1Steps[seqStep])
+              {
+                playMem4.play(AudioSampleHh1);
+              }
+              if (hh2Steps[seqStep])
+              {
+                playMem4.play(AudioSampleHh2);
+              }
+              if (hh3Steps[seqStep])
+              {
+                playMem4.play(AudioSampleHh3);
+              }
+              if (hh4Steps[seqStep])
+              {
+                playMem4.play(AudioSampleHh4);
+              }
+            }
+            prevSeqStep = seqStep;
           }
         }
       }
@@ -653,4 +1054,27 @@ void loop() {
   }
 }
 
+void seqReset ()
+{
+  page = 0;
+  for (int o = 0; o < 16; o++)
+  {
+    kick1Steps[o] = false;
+    kick2Steps[o] = false;
+    kick3Steps[o] = false;
+    kick4Steps[o] = false;
+    snare1Steps[o] = false;
+    snare2Steps[o] = false;
+    snare3Steps[o] = false;
+    snare4Steps[o] = false;
+    hh1Steps[o] = false;
+    hh2Steps[o] = false;
+    hh3Steps[o] = false;
+    hh4Steps[o] = false;
+    clap1Steps[o] = false;
+    clap2Steps[o] = false;
+    clap3Steps[o] = false;
+    clap4Steps[o] = false;
+  }
+}
 
