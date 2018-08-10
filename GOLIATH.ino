@@ -294,9 +294,9 @@ AudioControlSGTL5000     sgtl5000_1;     //xy=178,151
 //AUDIO
 float freqChart[16]
 {
-  220, 233.0819, 246.9417, 261.6256, 277.1826, 293.6648, 311.127, 329.6276, 349.6276, 369.9944, 391.9954, 415.3047, 440, 466.1638, 493.883, 523.2511
+  27.5, 29.13524, 30.86771, 32.7032, 34.64783, 36.7081, 38.89087, 41.20344, 43.65353, 46.2493, 48.99943, 51.91309, 55, 58.27047, 61.73541, 65.40639
 };
-int octave = 1;
+int octave = 2;
 int waveformA_type = WAVEFORM_SINE;
 int waveformB_type = WAVEFORM_SINE;
 int lfo_type = WAVEFORM_SINE;
@@ -304,7 +304,8 @@ int lfo_type = WAVEFORM_SINE;
 //drumpad
 bool drum = false;
 
-//POTS
+//POTS-MUX
+const int selectPins[3] = {
 
 //Buttons/Switches
 Bounce drumSwitch = Bounce(0, 15);
@@ -326,7 +327,7 @@ char keys[ROWS][COLS] = {
   {'M', 'N', 'O', 'P'},
 };
 byte colPins[COLS] = {27, 26, 25, 24};
-byte rowPins[ROWS] = {31, 32, 29, 28};
+byte rowPins[ROWS] = {31, 30, 29, 28};
 Keypad keypad = Keypad (makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 Keypad kpd = Keypad (makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 String msg;
@@ -424,8 +425,6 @@ void setup() {
   //encoders
 
   //audio
-
-  //audio
   sgtl5000_1.enable();
   sgtl5000_1.volume(1);
 
@@ -486,10 +485,8 @@ void setup() {
   }
 
   lfo.begin(2, 3, lfo_type);
-
-
-
-  //  biquad1.setLowpass(0, 800, 0.707);
+  
+  //biquad1.setLowpass(0, 800, 0.707);
 
   delay(200);
   Serial.println("Audio Instantiated");
@@ -504,13 +501,119 @@ void loop() {
     //POTS
     if (j == 0)
     {
-      int lfoFreq = analogRead(A14);
-      lfo.frequency(lfoFreq / 100);
-
-      msDelay = analogRead(A15);
-      beat.interval(msDelay);
-      tempo = 60, 000 / msDelay;
-
+      for(byte pin=0; pin<=7; pin++) {
+        selectMuxPin(pin);
+        switch (pin) {
+          case 0:
+              int lfoFreq = analogRead(A13);
+              lfo.frequency(lfoFreq);
+          break;
+          case 1:
+              msDelay = analogRead(A13);
+              beat.interval(msDelay);
+              tempo = 60,000 / msDelay;
+          break;
+          case 2:
+              int envAttack = analogRead(A13) * 2;
+              env1.attack(envAttack);  
+              env2.attack(envAttack);
+              env3.attack(envAttack);
+              env4.attack(envAttack);
+              env5.attack(envAttack);
+              env6.attack(envAttack);
+              env7.attack(envAttack);
+              env8.attack(envAttack);
+              env9.attack(envAttack);
+              env10.attack(envAttack);
+              env11.attack(envAttack);
+              env12.attack(envAttack);
+              env13.attack(envAttack);
+              env14.attack(envAttack);
+              env15.attack(envAttack);
+              env16.attack(envAttack);
+          break;
+          case 3:
+              int envHold = analogRead(A13);
+              env1.hold(envHold);  
+              env2.hold(envHold);
+              env3.hold(envHold);
+              env4.hold(envHold);
+              env5.hold(envHold);
+              env6.hold(envHold);
+              env7.hold(envHold);
+              env8.hold(envHold);
+              env9.hold(envHold);
+              env10.hold(envHold);
+              env11.hold(envHold);
+              env12.hold(envHold);
+              env13.hold(envHold);
+              env14.hold(envHold);
+              env15.hold(envHold);
+              env16.hold(envHold);
+          break;
+          case 4:
+              int envDecay = analogRead(A13);
+              env1.decay(envDecay);  
+              env2.decay(envDecay);
+              env3.decay(envDecay);
+              env4.decay(envDecay);
+              env5.decay(envDecay);
+              env6.decay(envDecay);
+              env7.decay(envDecay);
+              env8.decay(envDecay);
+              env9.decay(envDecay);
+              env10.decay(envDecay);
+              env11.decay(envDecay);
+              env12.decay(envDecay);
+              env13.decay(envDecay);
+              env14.decay(envDecay);
+              env15.decay(envDecay);
+              env16.decay(envDecay);
+          break;
+          case 5:
+              float envSustain = analogRead(A13); / 1000
+              env1.sustain(envSustain);  
+              env2.sustain(envSustain);
+              env3.sustain(envSustain);
+              env4.sustain(envSustain);
+              env5.sustain(envSustain);
+              env6.sustain(envSustain);
+              env7.sustain(envSustain);
+              env8.sustain(envSustain);
+              env9.sustain(envSustain);
+              env10.sustain(envSustain);
+              env11.sustain(envSustain);
+              env12.sustain(envSustain);
+              env13.sustain(envSustain);
+              env14.sustain(envSustain);
+              env15.sustain(envSustain);
+              env16.sustain(envSustain);
+          break;
+          case 6:
+              int envRelease = analogRead(A13) * 2;
+              env1.decay(envRelease);  
+              env2.decay(envRelease);
+              env3.decay(envRelease);
+              env4.decay(envRelease);
+              env5.decay(envRelease);
+              env6.decay(envRelease);
+              env7.decay(envRelease);
+              env8.decay(envRelease);
+              env9.decay(envRelease);
+              env10.decay(envRelease);
+              env11.decay(envRelease);
+              env12.decay(envRelease);
+              env13.decay(envRelease);
+              env14.decay(envRelease);
+              env15.decay(envRelease);
+              env16.decay(envRelease);
+          break;
+          case 7:
+              float waveshapeVal = (analogRead(A13) / 500) - 1;
+              waveshape1.shape(waveshapeVal, 17);
+          break;
+        }
+      }
     }
     //BUTTONS
     if (j == 1)
@@ -523,15 +626,6 @@ void loop() {
       pageDown.update();
       pageUp.update();
       resetSeq.update();
-
-      if (octave <= 0)
-      {
-        octave = 1;
-      }
-      if (octave >= 9)
-      {
-        octave = 8;
-      }
 
       if (playPause.fallingEdge())
       {
@@ -572,11 +666,19 @@ void loop() {
         octave++;
         Serial.print("Octave: ");
         Serial.println(octave);
+        if (octave <= 0)
+        {
+          octave = 1;
+        } 
       }
       if (octaveDown.fallingEdge()) {
         octave--;
         Serial.print("Octave: ");
         Serial.println(octave);
+        if (octave >= 9)
+        {
+          octave = 8;
+        }
       }
       if (pageUp.fallingEdge()) {
         page++;
@@ -1077,4 +1179,14 @@ void seqReset ()
     clap4Steps[o] = false;
   }
 }
-
+                
+void selectMuxPin(byte pin)
+{
+  for (int i=0; i<3; i++)
+  {
+    if (pin & (1<<i))
+      digitalWrite(selectPins[i], HIGH);
+    else
+      digitalWrite(selectPins[i], LOW);
+  }
+}
