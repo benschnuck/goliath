@@ -1,5 +1,6 @@
-const int selectPins[3] = {31, 30, 29};
-const int zInput = A13;
+const int selectPins[3] = {30, 29, 28};
+const int zInput1 = A13;
+const int zInput2 = A14;
 
 
 void setup() {
@@ -24,8 +25,10 @@ void loop() {
   // put your main code here, to run repeatedly:
   for(byte pin=0; pin<=7; pin++) {
     selectMuxPin(pin);
-    int inputVal;
-    inputVal = analogRead(A13);
+    int inputVal1;
+    int inputVal2;
+    inputVal1 = analogRead(zInput1);
+    inputVal2 = analogRead(zInput2);
     Serial.print(String(inputVal) + "\t");
   }
   Serial.println();
