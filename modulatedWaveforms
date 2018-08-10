@@ -1,0 +1,56 @@
+#include <Audio.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <SD.h>
+#include <SerialFlash.h>
+
+// GUItool: begin automatically generated code
+AudioSynthWaveform       waveform1;      //xy=224,547
+AudioSynthWaveformModulated waveformMod1;   //xy=372,629
+AudioSynthWaveformModulated waveformMod2;   //xy=475,709
+AudioOutputI2S           i2s1;           //xy=721,661
+AudioConnection          patchCord1(waveform1, 0, waveformMod1, 0);
+AudioConnection          patchCord2(waveformMod1, 0, waveformMod2, 0);
+AudioConnection          patchCord4(waveformMod2, 0, i2s1, 0);
+AudioConnection          patchCord5(waveformMod2, 0, i2s1, 1);
+AudioControlSGTL5000     sgtl5000_1;     //xy=681,832
+// GUItool: end automatically generated code
+
+
+
+
+void setup() {
+  // put your setup code here, to run once:
+  AudioMemory(50);
+  sgtl5000_1.enable();
+  sgtl5000_1.volume(0.2);
+  Serial.begin(9600);
+  waveform1.begin(1, 100, WAVEFORM_SAWTOOTH);
+  waveformMod1.begin(1, 50, WAVEFORM_SAWTOOTH);
+  waveformMod1.frequencyModulation(12);
+  waveformMod2.begin(1, 220, WAVEFORM_SAWTOOTH);
+  waveformMod2.frequencyModulation(12);
+}
+
+void loop() {
+  float wave1amp = (float)analogRead(A15) / 1000;
+  float wave1frq = (float)analogRead(A14) / 50;
+
+  float wave2amp = (float)analogRead(A17) / 1000;
+  float wave2frq = (float)analogRead(A16) / 50;
+
+
+  Serial.print("Waveform 1: ");
+  Serial.print(wave1amp);
+  Serial.print(" ");
+  Serial.print(wave1frq);
+  Serial.print(" Waveform 2: ");
+  Serial.print(wave2amp);
+  Serial.print(" ");
+  Serial.println(wave2frq);
+
+  waveform1.amplitude(wave1amp);
+  waveform1.frequency(wave1frq);
+  waveformMod1.amplitude(wave2amp);
+  waveformMod1.frequency(wave2frq);
+}
